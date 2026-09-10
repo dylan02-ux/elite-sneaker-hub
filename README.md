@@ -37,4 +37,4 @@ A full-stack sneaker e-commerce web application built with PHP and MySQL. Custom
 3. Create the database by importing `database.sql` via phpMyAdmin (`http://localhost/phpmyadmin`):
    - Create a database named `shoe_store`
    - Import `database.sql` into it
-4. Visit the site in your browser:
+4. Visit the site in your browser: 

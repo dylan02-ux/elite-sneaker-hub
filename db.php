@@ -1,3 +1,5 @@
+//Admin: admin@gmail.com / admin123
+
 <?php
 try {
     $pdo = new PDO('mysql:host=localhost;dbname=shoe_store', 'root', '');
@@ -100,5 +102,3 @@ try {
     die("Connection failed: " . $e->getMessage());
 }
 
-//Admin: admin@gmail.com / admin123
-//Customer: customer@gmail.com / user123
