@@ -9,14 +9,111 @@ require_once 'db.php';
 
 /*
 |--------------------------------------------------------------------------
-| Check Staff Login
+| Logout
 |--------------------------------------------------------------------------
 */
 
-$isLoggedIn =
+if (isset($_GET['logout']) && $_GET['logout'] == '1') {
+
+    $_SESSION = [];
+
+    if (ini_get("session.use_cookies")) {
+
+        $params = session_get_cookie_params();
+
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $params["path"],
+            $params["domain"],
+            $params["secure"],
+            $params["httponly"]
+        );
+    }
+
+    session_destroy();
+
+    header('Location: auth.php');
+    exit;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Already Logged In
+|--------------------------------------------------------------------------
+*/
+
+if (
     isset($_SESSION['user_id']) &&
     isset($_SESSION['role']) &&
-    $_SESSION['role'] === 'admin';
+    $_SESSION['role'] === 'admin'
+) {
+    header('Location: index.php');
+    exit;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Login
+|--------------------------------------------------------------------------
+*/
+
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+
+    if ($email === '' || $password === '') {
+
+        $error = 'Please enter both email and password.';
+
+    } else {
+
+        $stmt = $pdo->prepare("
+            SELECT *
+            FROM users
+            WHERE email = ?
+            LIMIT 1
+        ");
+
+        $stmt->execute([$email]);
+
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        if (
+            $user &&
+            password_verify($password, $user['password'])
+        ) {
+
+            if ($user['role'] !== 'admin') {
+
+                $error = 'Staff access only.';
+
+            } else {
+
+                session_regenerate_id(true);
+
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['email'] = $user['email'];
+                $_SESSION['role'] = $user['role'];
+
+                header('Location: index.php');
+                exit;
+            }
+
+        } else {
+
+            $error = 'Invalid email or password.';
+        }
+    }
+}
 
 ?>
 
@@ -32,18 +129,14 @@ $isLoggedIn =
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Elite Sneaker Hub Management System</title>
+    <title>Staff Login | Elite Sneaker Hub</title>
 
-
-    <!-- Bootstrap CSS -->
 
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
 
-
-    <!-- Bootstrap Icons -->
 
     <link
         rel="stylesheet"
@@ -53,115 +146,278 @@ $isLoggedIn =
 
     <style>
 
+        * {
+            box-sizing: border-box;
+        }
+
+
         body {
-            background-color: #f5f6f8;
+            margin: 0;
+            min-height: 100vh;
+
+            background: #eef0f1;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Navbar
+        | Top Bar
         |--------------------------------------------------------------------------
         */
 
-        .navbar {
-            min-height: 70px;
+        .topbar {
+            background: #050505;
+
+            color: white;
+
+            min-height: 72px;
+
+            display: flex;
+
+            align-items: center;
         }
 
 
-        .navbar-brand {
-            font-weight: 700;
+        .topbar-inner {
+            width: 100%;
+
+            max-width: 1140px;
+
+            margin: 0 auto;
+
+            padding: 0 20px;
+        }
+
+
+        .brand {
+            font-size: 1.15rem;
+
+            font-weight: 800;
+
             letter-spacing: 0.5px;
+
+            color: white;
+
+            text-decoration: none;
         }
 
 
-        .navbar-dark .nav-link {
-            color: rgba(255, 255, 255, 0.8) !important;
+        .brand i {
+            color: #d8ff24;
+
+            margin-right: 5px;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Login Area
+        |--------------------------------------------------------------------------
+        */
+
+        .login-wrapper {
+            min-height: calc(100vh - 72px);
+
+            display: flex;
+
+            justify-content: center;
+            align-items: center;
+
+            padding: 35px 20px;
+        }
+
+
+        .login-card {
+            width: 100%;
+
+            max-width: 430px;
+
+            background: white;
+
+            border: 1px solid #dde1e4;
+
+            border-radius: 22px;
+
+            padding: 34px;
+
+            box-shadow:
+                0 14px 35px
+                rgba(0, 0, 0, 0.08);
+        }
+
+
+        .login-icon {
+            width: 58px;
+            height: 58px;
+
+            display: flex;
+
+            justify-content: center;
+            align-items: center;
+
+            border-radius: 15px;
+
+            background: #1f2326;
+
+            color: #d8ff24;
+
+            font-size: 1.5rem;
+
+            margin-bottom: 20px;
+        }
+
+
+        .login-label {
+            color: #7a8084;
+
+            font-size: 0.76rem;
+
+            font-weight: 800;
+
+            text-transform: uppercase;
+
+            letter-spacing: 1.3px;
+
+            margin-bottom: 6px;
+        }
+
+
+        .login-title {
+            font-size: 2rem;
+
+            font-weight: 850;
+
+            color: #1d2124;
+
+            margin-bottom: 8px;
+        }
+
+
+        .login-subtitle {
+            color: #747b80;
+
+            font-size: 0.9rem;
+
+            margin-bottom: 25px;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Form
+        |--------------------------------------------------------------------------
+        */
+
+        .form-label {
+            font-weight: 700;
+
+            font-size: 0.84rem;
+
+            color: #3a4044;
+        }
+
+
+        .form-control {
+            border-radius: 11px;
+
+            min-height: 46px;
+
+            border: 1px solid #d7dcdf;
+        }
+
+
+        .form-control:focus {
+            border-color: #b5d500;
+
+            box-shadow:
+                0 0 0 0.2rem
+                rgba(216, 255, 36, 0.16);
+        }
+
+
+        .login-btn {
+            width: 100%;
+
+            min-height: 48px;
+
+            background: #1f2326;
+
+            color: white;
+
+            border: none;
+
+            border-radius: 11px;
+
+            font-weight: 800;
+
             transition: 0.2s ease;
         }
 
 
-        .navbar-dark .nav-link:hover {
-            color: white !important;
+        .login-btn:hover {
+            background: #d8ff24;
+
+            color: #111;
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Staff Information
+        | Demo Details
         |--------------------------------------------------------------------------
         */
 
-        .staff-email {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9rem;
-        }
+        .demo-box {
+            background: #f5f7ea;
 
+            border: 1px solid #e2e9b8;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Logout
-        |--------------------------------------------------------------------------
-        */
-
-        .logout-btn {
-            border-radius: 8px;
-            padding-left: 15px;
-            padding-right: 15px;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Cards
-        |--------------------------------------------------------------------------
-        */
-
-        .card {
-            border: none;
             border-radius: 12px;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+
+            padding: 14px;
+
+            margin-top: 20px;
+
+            font-size: 0.82rem;
+
+            color: #565e25;
+        }
+
+
+        .demo-title {
+            font-weight: 800;
+
+            margin-bottom: 6px;
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Sneaker Cards
+        | Error
         |--------------------------------------------------------------------------
         */
 
-        .sneaker-card {
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
+        .login-error {
+            background: #ffe7e7;
 
+            border: 1px solid #f2c2c2;
 
-        .sneaker-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-        }
+            color: #a83838;
 
+            border-radius: 11px;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Tables
-        |--------------------------------------------------------------------------
-        */
+            padding: 11px 13px;
 
-        .table {
-            vertical-align: middle;
-        }
+            margin-bottom: 18px;
 
+            font-size: 0.84rem;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Main Content
-        |--------------------------------------------------------------------------
-        */
-
-        .main-content {
-            padding-top: 10px;
-            padding-bottom: 40px;
+            font-weight: 700;
         }
 
     </style>
@@ -172,186 +428,174 @@ $isLoggedIn =
 <body>
 
 
-<!--
-|--------------------------------------------------------------------------
-| Company Navigation
-|--------------------------------------------------------------------------
--->
+    <header class="topbar">
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-black mb-4">
+        <div class="topbar-inner">
 
-    <div class="container">
-
-
-        <!--
-        |--------------------------------------------------------------------------
-        | LOGO
-        |--------------------------------------------------------------------------
-        |
-        | Logged in  -> Inventory
-        | Logged out -> Staff Login
-        |
-        -->
-
-        <a
-            class="navbar-brand"
-            href="<?= $isLoggedIn ? 'index.php' : 'auth.php' ?>"
-        >
-
-            <i class="bi bi-lightning-charge-fill"></i>
-
-            ELITE SNEAKER HUB
-
-        </a>
-
-
-        <?php if ($isLoggedIn): ?>
-
-
-            <!-- Mobile Navigation -->
-
-            <button
-                class="navbar-toggler"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarContent"
+            <a
+                href="auth.php"
+                class="brand"
             >
 
-                <span class="navbar-toggler-icon"></span>
+                <i class="bi bi-lightning-charge-fill"></i>
 
-            </button>
+                ELITE SNEAKER HUB
+
+            </a>
+
+        </div>
+
+    </header>
 
 
-            <div
-                class="collapse navbar-collapse"
-                id="navbarContent"
+    <main class="login-wrapper">
+
+
+        <section class="login-card">
+
+
+            <div class="login-icon">
+
+                <i class="bi bi-person-lock"></i>
+
+            </div>
+
+
+            <div class="login-label">
+
+                Company Management System
+
+            </div>
+
+
+            <h1 class="login-title">
+
+                Staff Login
+
+            </h1>
+
+
+            <p class="login-subtitle">
+
+                Sign in with an authorized staff account
+                to manage inventory, orders and reports.
+
+            </p>
+
+
+            <?php if ($error !== ''): ?>
+
+                <div class="login-error">
+
+                    <i class="bi bi-exclamation-circle"></i>
+
+                    <?= htmlspecialchars($error) ?>
+
+                </div>
+
+            <?php endif; ?>
+
+
+            <form
+                method="POST"
+                action="auth.php"
             >
 
 
-                <!-- Main Navigation -->
+                <div class="mb-3">
 
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-
-
-                    <!-- Inventory -->
-
-                    <li class="nav-item">
-
-                        <a
-                            class="nav-link"
-                            href="index.php"
-                        >
-
-                            <i class="bi bi-box-seam"></i>
-
-                            Inventory
-
-                        </a>
-
-                    </li>
-
-
-                    <!-- Dashboard -->
-
-                    <li class="nav-item">
-
-                        <a
-                            class="nav-link"
-                            href="dashboard.php"
-                        >
-
-                            <i class="bi bi-speedometer2"></i>
-
-                            Dashboard
-
-                        </a>
-
-                    </li>
-
-
-                    <!-- Orders -->
-
-                    <li class="nav-item">
-
-                        <a
-                            class="nav-link"
-                            href="orders.php"
-                        >
-
-                            <i class="bi bi-receipt"></i>
-
-                            Orders
-
-                        </a>
-
-                    </li>
-
-
-                    <!-- Reports -->
-
-                    <li class="nav-item">
-
-                        <a
-                            class="nav-link"
-                            href="reports.php"
-                        >
-
-                            <i class="bi bi-bar-chart"></i>
-
-                            Reports
-
-                        </a>
-
-                    </li>
-
-                </ul>
-
-
-                <!-- Right Side -->
-
-                <div class="d-flex align-items-center gap-3">
-
-
-                    <!-- Staff Email -->
-
-                    <div class="staff-email">
-
-                        <i class="bi bi-person-circle"></i>
-
-                        <?= htmlspecialchars($_SESSION['email']) ?>
-
-                    </div>
-
-
-                    <!-- Logout -->
-
-                    <a
-                        href="auth.php?logout=1"
-                        class="btn btn-outline-light logout-btn"
+                    <label
+                        for="email"
+                        class="form-label"
                     >
 
-                        <i class="bi bi-box-arrow-right"></i>
+                        Email Address
 
-                        Logout
+                    </label>
 
-                    </a>
+
+                    <input
+                        type="email"
+                        name="email"
+                        id="email"
+                        class="form-control"
+                        placeholder="admin@gmail.com"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="mb-4">
+
+                    <label
+                        for="password"
+                        class="form-label"
+                    >
+
+                        Password
+
+                    </label>
+
+
+                    <input
+                        type="password"
+                        name="password"
+                        id="password"
+                        class="form-control"
+                        placeholder="Enter password"
+                        required
+                    >
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="login-btn"
+                >
+
+                    <i class="bi bi-box-arrow-in-right"></i>
+
+                    Sign In
+
+                </button>
+
+
+            </form>
+
+
+            <div class="demo-box">
+
+                <div class="demo-title">
+
+                    Demo Staff Account
+
+                </div>
+
+                <div>
+
+                    Email:
+                    <strong>admin@gmail.com</strong>
+
+                </div>
+
+                <div>
+
+                    Password:
+                    <strong>admin123</strong>
 
                 </div>
 
             </div>
 
 
-        <?php endif; ?>
-
-    </div>
-
-</nav>
+        </section>
 
 
-<!--
-|--------------------------------------------------------------------------
-| Main Content
-|--------------------------------------------------------------------------
--->
+    </main>
 
-<div class="container main-content">
+
+</body>
+
+</html>

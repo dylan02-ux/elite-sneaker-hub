@@ -1,4 +1,3 @@
-//Admin: admin@gmail.com / admin123
 
 <?php
 try {
@@ -102,3 +101,4 @@ try {
     die("Connection failed: " . $e->getMessage());
 }
 
+//Admin: admin@gmail.com / admin123
