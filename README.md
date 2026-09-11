@@ -29,12 +29,19 @@ A full-stack sneaker e-commerce web application built with PHP and MySQL. Custom
 - [XAMPP](https://www.apachefriends.org/) (or any Apache + PHP 8+ + MySQL setup)
 
 ### Setup
-1. Clone this repository into your XAMPP `htdocs` folder:
+## Requirements
+
+- PHP
+- MySQL
+- XAMPP, MAMP, or equivalent local server environment
+
+## Setup
+
+1. Clone the repository.
+2. Place the project folder inside `htdocs`.
+3. Start Apache and MySQL.
+4. Import `database.sql` into MySQL.
+5. Run the project:
+
 ```bash
-   git clone https://github.com/dylan02-ux/elite-sneaker-hub.git
-```
-2. Start **Apache** and **MySQL** from the XAMPP control panel.
-3. Create the database by importing `database.sql` via phpMyAdmin (`http://localhost/phpmyadmin`):
-   - Create a database named `shoe_store`
-   - Import `database.sql` into it
-4. Visit the site in your browser: 
+php -d session.save_path=/tmp -S localhost:8000
